@@ -40,11 +40,11 @@ CHIP CPU {
 
     PARTS:
     ARegister(in=Ain, load=Aload, out=Aout, out[0..14]=addressM);
-    DRegister(in=ALUout, load=instruction[4], out=Dout);
+    DRegister(in=ALUout, load=Dload, out=Dout);
     PC(in=Aout, load=jump, inc=true, reset=reset, out[0..14]=pc);
-    ALU(x=ALUx, y=Dout, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, zr=zr, ng=ng, out=outM);
+    ALU(x=Dout, y=ALUy, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, zr=zr, ng=ng, out=outM);
 
-    Mux16(a=Aout, b=inM, sel=instruction[12], out=ALUx);
+    Mux16(a=Aout, b=inM, sel=instruction[12], out=ALUy);
 
     Mux16(a[15]=false, a[0..14]=instruction[0..14], b=ALUout, sel=instruction[15], out=Ain);
     Not(in=instruction[15], out=Ains);
@@ -57,7 +57,9 @@ CHIP CPU {
     And(a=ge, b=nz, out=gt);
     And(a=instruction[0], b=gt, out=j3);
     Or(a=j1, b=j2, out=j4);
-    Or(a=j4, b=j3, out=jump);
+    Or(a=j4, b=j3, out=j5);
+    And(a=j5, b=instruction[15], out=jump);
 
-    And(a=true, b=instruction[3], out=writeM);
+    And(a=instruction[15], b=instruction[3], out=writeM);
+    And(a=instruction[15], b=instruction[4], out=Dload);
 }
