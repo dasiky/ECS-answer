@@ -11,7 +11,15 @@ Parser::Parser(const std::string& filename) {
 
 	std::string line;
 	while (std::getline(file, line)) {
-		if (line != "" && line.substr(0, 2) != "//")
+		auto comment = line.find("//");
+		line = line.substr(0, comment);
+		int start = 0, end = line.size() - 1;
+		while (start < line.size() && isspace(line[start])) 
+			start++;
+		while (end >= 0 && isspace(line[end]))
+			end--;
+		line = line.substr(start, end - start + 1);
+		if (line != "")
 			source.push_back(line);
 	};
 	file.close();
@@ -57,7 +65,7 @@ std::string Parser::dest() {
 
 std::string Parser::comp() {
 	auto& currentCommand = source[index];
-	auto eq = currentCommand.find('=');
+	int eq = currentCommand.find('=');
 	auto semicolon = currentCommand.find(';');
 
 	if (eq == std::string::npos)
