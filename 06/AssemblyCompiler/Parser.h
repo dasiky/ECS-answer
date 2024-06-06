@@ -15,6 +15,7 @@ public:
 	Parser(const std::string& filename);
 	bool hasMoreCommands(); 
 	void advance();
+	void regress();
 	commandTypeEnum commandType();
 	std::string symbol();
 	std::string dest();

@@ -33,6 +33,10 @@ void Parser::advance() {
 	index++;
 }
 
+void Parser::regress() {
+	index = 0;
+}
+
 commandTypeEnum Parser::commandType() {
 	auto& currentCommand = source[index];
 	if (currentCommand[0] == '@')
