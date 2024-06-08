@@ -49,12 +49,13 @@ void CodeWrite::writeArithmetic(const std::string& command) {
 				wrAsm("D;JLT");
 			wrAsm("D=0");
 			wrAsm("@" + endSymbol);
-			wrAsm(";JMP");
+			wrAsm("0;JMP");
 			wrAsm("(" + trueSymbol + ")");
 			wrAsm("D=-1");
 			wrAsm("(" + endSymbol + ")");
 
 			wrAsm("@SP");
+			wrAsm("A=M");
 			wrAsm("A=A-1");
 			wrAsm("A=A-1");
 			wrAsm("M=D");
@@ -69,13 +70,18 @@ void CodeWrite::writeArithmetic(const std::string& command) {
 }
 
 static const std::unordered_map<std::string, std::string> segmentSymbol{
-	// 这四个内存地址中的值才是对应段的基址
+	// 这四个内存地址中的值才是对应段的基址，即
+	// @x
+	// A=M
+	// 此时A才指向该段
 	{"local", "LCL"},
 	{"argument", "ARG"},
 	{"this", "THIS"},
 	{"that", "THAT"},
 
-	// 这三个内存地址处就是对应段的基址
+	// 这三个内存地址处就是对应段的基址，即
+	// @x
+	// 此时A就指向该段
 	{"pointer", "THIS"},
 	{"temp", "R5"},
 	{"static", "16"}
