@@ -1,0 +1,49 @@
+class Main {
+    function void main() {
+        var int size;
+        var int i;
+        var Array arr;
+
+        let size = Keyboard.readInt("How many numbers? ");
+        let arr = Array.new(size);
+
+        let i = 0;
+        while(i < size) {
+            let arr[i] = Keyboard.readInt("input number: ");
+            let i = i + 1;
+        }
+
+        do Main.sort(arr, size);
+
+        let i = 0;
+        do Output.println();
+        do Output.printString("result: ");
+        while(i < size) {
+            do Output.printInt(arr[i]);
+            do Output.printString(" ");
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void sort(Array arr, int size) {
+        var int i, j, k;
+
+        let i = 0;
+        while(i < size) {
+            let j = 0;
+            while(j < (size - 1)) {
+                if (arr[j] > arr[j + 1]) {
+                    let k = arr[j + 1];
+                    let arr[j + 1] = arr[j];
+                    let arr[j] = k;
+                }
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+
+        return;
+    }
+}
