@@ -29,7 +29,8 @@ bool JackTokenizer::getKeyword() {
     };
     for (auto keyword : keywords) {
         if (code.substr(codeIndex, keyword.size()) == keyword) {
-            tokens.emplace_back(TOKEN_TYPE::keyword, keyword);
+            curTokenType = TOKEN_TYPE::keyword;
+            curTokenVal = keyword;
             codeIndex += keyword.size();
             return true;
         }
@@ -41,7 +42,8 @@ bool JackTokenizer::getSymbol() {
     static const std::string symbols = "{}()[].,;+-*/&|<>=~";
     for (auto c : symbols)
         if (code[codeIndex] == c) {
-            tokens.emplace_back(TOKEN_TYPE::symbol, std::string(1, c));
+            curTokenType = TOKEN_TYPE::symbol;
+            curTokenVal = std::string(1, c);
             codeIndex++;
             return true;
         }
@@ -55,7 +57,8 @@ bool JackTokenizer::getIntegerConstant() {
     if (i == codeIndex)
         return false;
 
-    tokens.emplace_back(TOKEN_TYPE::int_const, code.substr(codeIndex, i - codeIndex));
+    curTokenType = TOKEN_TYPE::int_const;
+    curTokenVal = code.substr(codeIndex, i - codeIndex);
     codeIndex += i - codeIndex;
     return true;
 }
@@ -66,7 +69,8 @@ bool JackTokenizer::getStringConstant() {
     auto nextIndex = code.find_first_of('\"', codeIndex + 1);
     if (nextIndex == std::string::npos)
         return false;
-    tokens.emplace_back(TOKEN_TYPE::string_const, code.substr(codeIndex + 1, nextIndex - codeIndex - 1));
+    curTokenType = TOKEN_TYPE::string_const;
+    curTokenVal = code.substr(codeIndex + 1, nextIndex - codeIndex - 1);
     codeIndex += nextIndex - codeIndex + 1;
     return true;
 }
@@ -82,7 +86,8 @@ bool JackTokenizer::getIdentifier() {
     if (i == codeIndex)
         return false;
 
-    tokens.emplace_back(TOKEN_TYPE::identifier, code.substr(codeIndex, i - codeIndex));
+    curTokenType = TOKEN_TYPE::identifier;
+    curTokenVal = code.substr(codeIndex, i - codeIndex);
     codeIndex += i - codeIndex;
     return true;
 }
@@ -119,54 +124,51 @@ JackTokenizer::JackTokenizer(const std::string& filepath) {
     }
     code.push_back(codeTemp.back());
     std::cout << code << std::endl;
-    
-    std::string token;
-    while (codeIndex < code.size()) {
-        while (codeIndex < code.size() && isspace(code[codeIndex]))
-            codeIndex++;
-        if (getKeyword()) continue;
-        if (getSymbol()) continue;
-        if (getIntegerConstant()) continue;
-        if (getStringConstant()) continue;
-        if (getIdentifier()) continue;
-        return;
-    }
 }
 
 bool JackTokenizer::hasMoreTokens() {
-    return tokenIndex < tokens.size() - 1;
+    while (codeIndex < code.size() && isspace(code[codeIndex]))
+        codeIndex++;
+    if (codeIndex < code.size()) return true;
+    return false;
 }
 
 void JackTokenizer::advance() {
-    tokenIndex++;
+    if (getKeyword()) return;
+    if (getSymbol()) return;
+    if (getIntegerConstant()) return;
+    if (getStringConstant()) return;
+    if (getIdentifier()) return;
+    curTokenType = TOKEN_TYPE::error;
+    curTokenVal = "";
 }
 
 TOKEN_TYPE JackTokenizer::tokenType() {
-    return tokens[tokenIndex].type;
-}
-
-std::string JackTokenizer::keyWord() {
-    return tokens[tokenIndex].val;
-}
-
-char JackTokenizer::symbol() {
-    return tokens[tokenIndex].val[0];
-}
-
-std::string JackTokenizer::identifier() {
-    return tokens[tokenIndex].val;
-}
-
-int JackTokenizer::intVal() {
-    return atoi(tokens[tokenIndex].val.c_str());
-}
-
-std::string JackTokenizer::stringVal() {
-    return tokens[tokenIndex].val;
+    return curTokenType;
 }
 
 std::string JackTokenizer::tokenVal() {
-    return tokens[tokenIndex].val;
+    return curTokenVal;
+}
+
+std::string JackTokenizer::keyWord() {
+    return curTokenVal;
+}
+
+char JackTokenizer::symbol() {
+    return curTokenVal[0];
+}
+
+std::string JackTokenizer::identifier() {
+    return curTokenVal;
+}
+
+int JackTokenizer::intVal() {
+    return atoi(curTokenVal.c_str());
+}
+
+std::string JackTokenizer::stringVal() {
+    return curTokenVal;
 }
 
 std::string to_string(TOKEN_TYPE type) {
@@ -183,4 +185,5 @@ std::string to_string(TOKEN_TYPE type) {
     case TOKEN_TYPE::string_const:
         return "stringConstant";
     }
+    return "error";
 }
