@@ -1,4 +1,5 @@
 #include "JackTokenizer.h"
+#include "CompilationEngine.h"
 #include <fstream>
 #include <filesystem>
 #include <iostream>
@@ -15,23 +16,24 @@ int main(int argc, char** argv) {
     std::cout << "output: " << std::endl;
     std::cout << tokenPath << std::endl;
 
-    std::ofstream tokenOfs(tokenPath);
-    tokenOfs << "<tokens>" << std::endl;
+    //std::ofstream tokenOfs(tokenPath);
+    //tokenOfs << "<tokens>" << std::endl;
 
     auto tokenizer = JackTokenizer(jackPath);
-    while (tokenizer.hasMoreTokens()) {
-        tokenizer.advance();
-        auto type = tokenizer.tokenType();
-        auto tokenVal = tokenizer.tokenVal();
-        if (tokenVal == ">")
-            tokenVal = "&gt;";
-        if (tokenVal == "<")
-            tokenVal = "&lt;";
-        if (tokenVal == "&")
-            tokenVal = "&amp;";
-        tokenOfs << "<" + to_string(type) + "> " + tokenVal + " </" + to_string(type) + ">" << std::endl;
-    }
+    //while (tokenizer.hasMoreTokens()) {
+    //    tokenizer.advance();
+    //    auto type = tokenizer.tokenType();
+    //    auto tokenVal = tokenizer.tokenVal();
+    //    if (tokenVal == ">")
+    //        tokenVal = "&gt;";
+    //    if (tokenVal == "<")
+    //        tokenVal = "&lt;";
+    //    if (tokenVal == "&")
+    //        tokenVal = "&amp;";
+    //    tokenOfs << "<" + to_string(type) + "> " + tokenVal + " </" + to_string(type) + ">" << std::endl;
+    //}
+    //tokenOfs << "</tokens>" << std::endl;
+    //tokenOfs.close();
 
-    tokenOfs << "</tokens>" << std::endl;
-    tokenOfs.close();
+    auto engine = CompilationEngine(tokenizer, analPath);
 }
