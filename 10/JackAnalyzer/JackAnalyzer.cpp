@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     std::string tokenPath = directoryPath + "\\" + jackFilename + "T2.xml";
     std::string analPath = directoryPath + "\\" + jackFilename + "2.xml";
     std::cout << "output: " << std::endl;
-    std::cout << tokenPath << std::endl;
+    std::cout << analPath << std::endl;
 
     //std::ofstream tokenOfs(tokenPath);
     //tokenOfs << "<tokens>" << std::endl;
@@ -36,4 +36,5 @@ int main(int argc, char** argv) {
     //tokenOfs.close();
 
     auto engine = CompilationEngine(tokenizer, analPath);
+    engine.compileClass();
 }

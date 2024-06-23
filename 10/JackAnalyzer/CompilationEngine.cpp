@@ -36,12 +36,11 @@ void CompilationEngine::compileClass() {
 }
 
 bool CompilationEngine::compileClassVarDec() {
-	prtNTermSym("classVarDec", false);
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "static", "field" })) {
 		index--;  return false;
 	}
+	prtNTermSym("classVarDec", false);
 	prtTermSym(); index++;
 
 	if (!isType()) return false;
@@ -57,18 +56,18 @@ bool CompilationEngine::compileClassVarDec() {
 	}
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
+	prtTermSym();
 
 	prtNTermSym("classVarDec", true);
 	return true;
 }
 
 bool CompilationEngine::compileSubroutineDec() {
-	prtNTermSym("subroutineDec", false);
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "constructor", "function", "method" })) {
 		index--;  return false;
 	}
+	prtNTermSym("subroutineDec", false);
 	prtTermSym(); index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "void" }) && !isType()) return false;
@@ -93,12 +92,11 @@ bool CompilationEngine::compileSubroutineDec() {
 }
 
 bool CompilationEngine::compileSubroutineBody() {
-	prtNTermSym("subroutineBody", false);
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "{" })) {
 		index--;  return false;
 	}
+	prtNTermSym("subroutineBody", false);
 	prtTermSym();
 
 	while (compileVarDec());
@@ -116,13 +114,14 @@ bool CompilationEngine::compileParameterList() {
 	prtNTermSym("parameterList", false);
 	index++;
 
-	if (!isType()) { index--; return true; }
+	if (!isType()) { index--; prtNTermSym("parameterList", true); return true; }
 	prtTermSym(); index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	prtTermSym(); index++;
 
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "," })) {
+		prtTermSym(); index++;
 		if (!isType()) return false;
 		prtTermSym(); index++;
 		if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
@@ -135,12 +134,11 @@ bool CompilationEngine::compileParameterList() {
 }
 
 bool CompilationEngine::compileVarDec() {
-	prtNTermSym("varDec", false);
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "var" })) {
 		index--;  return false;
 	}
+	prtNTermSym("varDec", false);
 	prtTermSym(); index++;
 
 	if (!isType()) return false;
@@ -175,18 +173,18 @@ bool CompilationEngine::compileStatements() {
 		if (compileReturn()) continue;
 		return false;
 	}
+	index--;
 
 	prtNTermSym("statements", true);
 	return true;
 }
 
 bool CompilationEngine::compileDo() {
-	prtNTermSym("doStatement", false);
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "do" })) {
 		index--; return false;
 	}
+	prtNTermSym("doStatement", false);
 	prtTermSym(); index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
@@ -197,7 +195,7 @@ bool CompilationEngine::compileDo() {
 
 	if (curToken() == "(") {
 		if (!compileExpressionList()) return false;
-
+		index++;
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
 		prtTermSym();
 	}
@@ -211,21 +209,26 @@ bool CompilationEngine::compileDo() {
 
 		if (!compileExpressionList()) return false;
 
+		index++;
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
 		prtTermSym();
 	}
+	index++;
+	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
+	prtTermSym();
 
 	prtNTermSym("doStatement", true);
 	return true;
 }
 
 bool CompilationEngine::compileLet() {
-	prtNTermSym("letStatement", false);
 	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "let" })) {
 		index--; return false;
 	}
+	prtNTermSym("letStatement", false);
+	prtTermSym(); index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	prtTermSym(); index++;
@@ -236,7 +239,7 @@ bool CompilationEngine::compileLet() {
 		if (!compileExpression()) return false;
 		index++;
 
-		if (!isTokenEqual(TOKEN_TYPE::symbol, { "[" })) return false;
+		if (!isTokenEqual(TOKEN_TYPE::symbol, { "]" })) return false;
 		prtTermSym(); index++;
 	}
 	
@@ -254,12 +257,12 @@ bool CompilationEngine::compileLet() {
 }
 
 bool CompilationEngine::compileWhile() {
-	prtNTermSym("whileStatement", false);
 	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "while" })) {
 		index--; return false;
 	}
+	prtNTermSym("whileStatement", false);
 	prtTermSym(); index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "(" })) return false;
@@ -285,15 +288,24 @@ bool CompilationEngine::compileWhile() {
 }
 
 bool CompilationEngine::compileReturn() {
-	prtNTermSym("returnStatement", false);
 	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "return" })) {
 		index--; return false;
 	}
-	prtTermSym();
+	prtNTermSym("returnStatement", false);
+	prtTermSym(); index++;
 
-	compileExpression();
+	if (curType() == TOKEN_TYPE::identifier ||
+		isTokenEqual(TOKEN_TYPE::symbol, { "-", "~" }) ||
+		curType() == TOKEN_TYPE::int_const ||
+		curType() == TOKEN_TYPE::string_const ||
+		isTokenEqual(TOKEN_TYPE::keyword, { "true", "false", "null", "this" })) {
+		index--;
+		if (!compileExpression()) return false;
+	}
+	else
+		index--;
 	index++;
 	
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
@@ -304,12 +316,12 @@ bool CompilationEngine::compileReturn() {
 }
 
 bool CompilationEngine::compileIf() {
-	prtNTermSym("ifStatement", false);
 	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "if" })) {
 		index--; return false;
 	}
+	prtNTermSym("ifStatement", false);
 	prtTermSym(); index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "(" })) return false;
@@ -330,13 +342,29 @@ bool CompilationEngine::compileIf() {
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return false;
 	prtTermSym();
 
+	index++;
+	if (isTokenEqual(TOKEN_TYPE::keyword, { "else" })) {
+		prtTermSym(); index++;
+
+		if (!isTokenEqual(TOKEN_TYPE::symbol, { "{" })) return false;
+		prtTermSym();
+
+		if (!compileStatements()) return false;
+		index++;
+
+		if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return false;
+		prtTermSym();
+	}
+	else
+		index--;
+
 	prtNTermSym("ifStatement", true);
 	return true;
 }
 
 bool CompilationEngine::compileExpression() {
 	prtNTermSym("expression", false);
-	
+
 	if (!compileTerm()) return false;
 	index++;
 	
@@ -345,6 +373,7 @@ bool CompilationEngine::compileExpression() {
 		if (!compileTerm()) return false;
 		index++;
 	}
+	index--;
 
 	prtNTermSym("expression", true);
 	return true;
@@ -361,7 +390,7 @@ bool CompilationEngine::compileTerm() {
 	else if (curType() == TOKEN_TYPE::identifier) {
 		prtTermSym();
 		index++;
-		if (isTokenEqual(TOKEN_TYPE::symbol, { "(" , "."})) {
+		if (isTokenEqual(TOKEN_TYPE::symbol, { "(" , "." })) {
 			// same as compileDo()
 			prtTermSym();
 			if (curToken() == "(") {
@@ -380,6 +409,7 @@ bool CompilationEngine::compileTerm() {
 
 				if (!compileExpressionList()) return false;
 
+				index++;
 				if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
 				prtTermSym();
 			}
@@ -389,7 +419,10 @@ bool CompilationEngine::compileTerm() {
 			if (!compileExpression()) return false;
 			index++;
 			if (!isTokenEqual(TOKEN_TYPE::symbol, { "]" })) return false;
+			prtTermSym();
 		}
+		else
+			index--;
 	}
 	else if (isTokenEqual(TOKEN_TYPE::symbol, { "(" })) {
 		prtTermSym();
@@ -397,6 +430,7 @@ bool CompilationEngine::compileTerm() {
 		index++;
 
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
+		prtTermSym();
 	}
 	else if (isTokenEqual(TOKEN_TYPE::symbol, { "-", "~" })) {
 		prtTermSym();
@@ -411,8 +445,21 @@ bool CompilationEngine::compileTerm() {
 
 bool CompilationEngine::compileExpressionList() {
 	prtNTermSym("expressionList", false);
-	
-	if (!compileExpression()) return true;
+	index++;
+	if (curType() == TOKEN_TYPE::identifier ||
+		isTokenEqual(TOKEN_TYPE::symbol, { "-", "~", "("}) ||
+		curType() == TOKEN_TYPE::int_const ||
+		curType() == TOKEN_TYPE::string_const ||
+		isTokenEqual(TOKEN_TYPE::keyword, { "true", "false", "null", "this" })) {
+		index--;
+		if (!compileExpression()) return false;
+	}
+	else {
+		index--;
+		prtNTermSym("expressionList", true);
+		return true;
+	}
+
 	index++;
 
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "," })) {
@@ -432,10 +479,7 @@ bool CompilationEngine::isType(int index) {
 	return isTokenEqual(TOKEN_TYPE::keyword, { "int", "char", "boolean" }) || isTokenEqual(TOKEN_TYPE::identifier, {});
 }
 
-bool CompilationEngine::isTokenEqual(TOKEN_TYPE type, const std::initializer_list<std::string>& vals, int index) {
-	if (index == -1) 
-		index = this->index;
-
+bool CompilationEngine::isTokenEqual(TOKEN_TYPE type, const std::initializer_list<std::string>& vals) {
 	if (curType() != type)
 		return false;
 	if (vals.size() == 0)
@@ -458,16 +502,20 @@ void CompilationEngine::prtTermSym() {
 	for (int i = 0; i < level; i++)
 		ofs << "  ";
 
-	ofs << "<" + to_string(curType()) + "> " + curToken() + " </" + to_string(curType()) + ">" << std::endl;
+	std::string tokenVal = curToken();
+	if (tokenVal == "<") tokenVal = "&lt;";
+	if (tokenVal == ">") tokenVal = "&gt;";
+	if (tokenVal == "&") tokenVal = "&amp;";
+	ofs << "<" + to_string(curType()) + "> " + tokenVal + " </" + to_string(curType()) + ">" << std::endl;
 }
 
 void CompilationEngine::prtNTermSym(const std::string& tagName, bool isEnd) {
+	if (isEnd) level--;
 	for (int i = 0; i < level; i++)
 		ofs << "  ";
 
 	if (isEnd) {
 		ofs << "</" + tagName + ">" << std::endl;
-		level--;
 	}
 	else {
 		ofs << "<" + tagName + ">" << std::endl;

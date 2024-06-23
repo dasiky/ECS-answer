@@ -26,7 +26,7 @@ private:
 	bool compileExpressionList();
 
 	bool isType(int index = -1);
-	bool isTokenEqual(TOKEN_TYPE type, const std::initializer_list<std::string>& vals, int index = -1);
+	bool isTokenEqual(TOKEN_TYPE type, const std::initializer_list<std::string>& vals);
 	TOKEN_TYPE curType();
 	std::string curToken();
 	std::vector<std::pair<TOKEN_TYPE, std::string>> tokens;
