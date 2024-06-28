@@ -8,7 +8,7 @@
 
 class CompilationEngine {
 public:
-	CompilationEngine(JackTokenizer& tokenizer, const std::string& outPath, VMWriter& writer);
+	CompilationEngine(JackTokenizer& tokenizer, VMWriter& writer);
 
 	void compileClass();
 private:
@@ -28,17 +28,12 @@ private:
 	bool compileTerm();
 	bool compileExpressionList(int& expCount);
 
-	bool isType(int index = -1);
+	bool isType();
 	bool isTokenEqual(TOKEN_TYPE type, const std::initializer_list<std::string>& vals);
 	TOKEN_TYPE curType();
 	std::string curToken();
 	std::vector<std::pair<TOKEN_TYPE, std::string>> tokens;
 	int index = 0;
-
-	void prtTermSym();
-	void prtNTermSym(const std::string& tagName, bool isEnd);
-	int level = 0;
-	std::ofstream ofs;
 
 	std::string className;
 	std::string funcName;

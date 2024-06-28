@@ -1,29 +1,22 @@
 #include "CompilationEngine.h"
 #include <iostream>
 
-CompilationEngine::CompilationEngine(JackTokenizer& tokenizer, const std::string& outPath, VMWriter& writer):writer(writer) {
+CompilationEngine::CompilationEngine(JackTokenizer& tokenizer, VMWriter& writer):writer(writer) {
 	while (tokenizer.hasMoreTokens()) {
 		tokenizer.advance();
 		tokens.emplace_back(tokenizer.tokenType(), tokenizer.tokenVal());
 	}
-
-	ofs.open(outPath);
-	if (!ofs.is_open())
-		std::cerr << "can't open file: " << outPath << std::endl;
 }
 
 void CompilationEngine::compileClass() {
-	prtNTermSym("class", false);
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "class" })) return;
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return;
 	className = curToken();
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, {"{"})) return;
-	prtTermSym();
 
 	symTabel.StartSubroutine();
 	int fieldCount = 0;
@@ -33,10 +26,7 @@ void CompilationEngine::compileClass() {
 
 	index++;
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return;
-	prtTermSym();
-
-	prtNTermSym("class", true);
-	ofs.close();
+	writer.close();
 }
 
 bool CompilationEngine::compileClassVarDec(int& fieldCount) {
@@ -44,33 +34,29 @@ bool CompilationEngine::compileClassVarDec(int& fieldCount) {
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "static", "field" })) {
 		index--;  return false;
 	}
-	prtNTermSym("classVarDec", false);
 	VAR_KIND symKind = (curToken() == "static" ? VAR_KIND::STATIC : VAR_KIND::FIELD);
-	prtTermSym(); index++;
+	index++;
 
 	if (!isType()) return false;
 	std::string symType = curToken();
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	symTabel.Define(curToken(), symType, symKind);
 	if (symKind == VAR_KIND::FIELD)
 		fieldCount++;
-	prtTermSym(); index++;
+	index++;
 	
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "," })) {
-		prtTermSym(); index++;
+		index++;
 		if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 		symTabel.Define(curToken(), symType, symKind);
 		if (symKind == VAR_KIND::FIELD)
 			fieldCount++;
-		prtTermSym(); index++;
+		index++;
 	}
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
-	prtTermSym();
-
-	prtNTermSym("classVarDec", true);
 	return true;
 }
 
@@ -80,30 +66,25 @@ bool CompilationEngine::compileSubroutineDec(int fieldCount) {
 		index--;  return false;
 	}
 	subroutineType = curToken();
-	prtNTermSym("subroutineDec", false);
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "void" }) && !isType()) return false;
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	funcName = curToken();
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "(" })) return false;
-	prtTermSym();
 
 	symTabel.StartSubroutine();
 	if (!compileParameterList()) return false;
 	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
-	prtTermSym();
 
 	if (!compileSubroutineBody(fieldCount)) return false;
 	symTabel.EndSubroutine();
-
-	prtNTermSym("subroutineDec", true);
 	return true;
 }
 
@@ -112,8 +93,6 @@ bool CompilationEngine::compileSubroutineBody(const int fieldCount) {
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "{" })) {
 		index--;  return false;
 	}
-	prtNTermSym("subroutineBody", false);
-	prtTermSym();
 	int varCount = 0;
 	while (compileVarDec(varCount));
 	writer.writeFunction(className + "." + funcName, varCount);
@@ -131,35 +110,29 @@ bool CompilationEngine::compileSubroutineBody(const int fieldCount) {
 
 	index++;
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return false;
-	prtTermSym();
-
-	prtNTermSym("subroutineBody", true);
 	return true;
 }
 
 bool CompilationEngine::compileParameterList() {
-	prtNTermSym("parameterList", false);
 	index++;
 
-	if (!isType()) { index--; prtNTermSym("parameterList", true); return true; }
+	if (!isType()) { index--; return true; }
 	std::string symType = curToken();
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	symTabel.Define(curToken(), symType, VAR_KIND::ARG);
-	prtTermSym(); index++;
+	index++;
 
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "," })) {
-		prtTermSym(); index++;
+		index++;
 		if (!isType()) return false;
-		prtTermSym(); index++;
+		index++;
 		if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 		symTabel.Define(curToken(), symType, VAR_KIND::ARG);
-		prtTermSym(); index++;
+		index++;
 	}
 	index--;
-
-	prtNTermSym("parameterList", true);
 	return true;
 }
 
@@ -168,35 +141,30 @@ bool CompilationEngine::compileVarDec(int& varCount) {
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "var" })) {
 		index--;  return false;
 	}
-	prtNTermSym("varDec", false);
-	prtTermSym(); index++;
+	index++;
 
 	if (!isType()) return false;
 	std::string symType = curToken();
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	symTabel.Define(curToken(), symType, VAR_KIND::VAR);
-	prtTermSym(); index++;
+	index++;
 	varCount++;
 
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "," })) {
-		prtTermSym(); index++;
+		index++;
 		if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 		symTabel.Define(curToken(), symType, VAR_KIND::VAR);
-		prtTermSym(); index++;
+		index++;
 		varCount++;
 	}
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
-	prtTermSym();
-
-	prtNTermSym("varDec", true);
 	return true;
 }
 
 bool CompilationEngine::compileStatements() {
-	prtNTermSym("statements", false);
 	index++;
 
 	for (; isTokenEqual(TOKEN_TYPE::keyword, { "let", "if", "while", "do", "return" }); index++) {
@@ -209,8 +177,6 @@ bool CompilationEngine::compileStatements() {
 		return false;
 	}
 	index--;
-
-	prtNTermSym("statements", true);
 	return true;
 }
 
@@ -219,17 +185,12 @@ bool CompilationEngine::compileDo() {
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "do" })) {
 		index--; return false;
 	}
-	prtNTermSym("doStatement", false);
-	prtTermSym(); 
 
 	compileSubRoutineCall();
 	writer.writePop(SEGMENT::TEMP, 0);
 
 	index++;
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
-	prtTermSym();
-
-	prtNTermSym("doStatement", true);
 	return true;
 }
 
@@ -238,10 +199,9 @@ bool CompilationEngine::compileSubRoutineCall() {
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	auto firstPart = curToken();
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "(", "." })) return false;
-	prtTermSym();
 
 	int expCount = 0;
 	if (curToken() == "(") {
@@ -249,7 +209,6 @@ bool CompilationEngine::compileSubRoutineCall() {
 		if (!compileExpressionList(expCount)) return false;
 		index++;
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
-		prtTermSym();
 		writer.writeCall(className + "." + firstPart, expCount + 1);
 	}
 	else {
@@ -279,10 +238,9 @@ bool CompilationEngine::compileSubRoutineCall() {
 		index++;
 		if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 		auto secondPart = curToken();
-		prtTermSym(); index++;
+		index++;
 
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { "(" })) return false;
-		prtTermSym();
 
 		if (!compileExpressionList(expCount)) return false;
 
@@ -293,29 +251,24 @@ bool CompilationEngine::compileSubRoutineCall() {
 
 		index++;
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
-		prtTermSym();
 	}
 }
 
 bool CompilationEngine::compileLet() {
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "let" })) {
 		index--; return false;
 	}
-	prtNTermSym("letStatement", false);
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::identifier, {})) return false;
 	std::string var = curToken();
 	auto symIndex = symTabel.IndexOf(var);
 	auto symKind = symTabel.KindOf(var);
-	prtTermSym(); index++;
+	index++;
 
 	bool useIndex = false;
 	if (isTokenEqual(TOKEN_TYPE::symbol, { "[" })) {
-		prtTermSym();
-
 		if (!compileExpression()) return false;
 		index++;
 
@@ -341,12 +294,11 @@ bool CompilationEngine::compileLet() {
 		writer.writePop(SEGMENT::TEMP, 1);
 
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { "]" })) return false;
-		prtTermSym(); index++;
+		index++;
 		useIndex = true;
 	}
 	
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "=" })) return false;
-	prtTermSym();
 
 	if (!compileExpression()) return false;
 	index++;
@@ -378,23 +330,17 @@ bool CompilationEngine::compileLet() {
 	}
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
-	prtTermSym();
-
-	prtNTermSym("letStatement", true);
 	return true;
 }
 
 bool CompilationEngine::compileWhile() {
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "while" })) {
 		index--; return false;
 	}
-	prtNTermSym("whileStatement", false);
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "(" })) return false;
-	prtTermSym();
 
 	auto label1 = "label_" + std::to_string(labelCount + 1);
 	auto label2 = "label_" + std::to_string(labelCount + 2);
@@ -406,10 +352,9 @@ bool CompilationEngine::compileWhile() {
 	writer.writeIf(label2);
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "{" })) return false;
-	prtTermSym();
 
 	if (!compileStatements()) return false;
 	index++;
@@ -418,9 +363,6 @@ bool CompilationEngine::compileWhile() {
 	writer.writeLabel(label2);
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return false;
-	prtTermSym();
-
-	prtNTermSym("whileStatement", true);
 	return true;
 }
 
@@ -430,8 +372,7 @@ bool CompilationEngine::compileReturn() {
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "return" })) {
 		index--; return false;
 	}
-	prtNTermSym("returnStatement", false);
-	prtTermSym(); index++;
+	index++;
 
 	if (curType() == TOKEN_TYPE::identifier ||
 		isTokenEqual(TOKEN_TYPE::symbol, { "-", "~" }) ||
@@ -450,29 +391,23 @@ bool CompilationEngine::compileReturn() {
 	index++;
 	
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ";" })) return false;
-	prtTermSym();
-
-	prtNTermSym("returnStatement", true);
 	return true;
 }
 
 bool CompilationEngine::compileIf() {
 	index++;
-
 	if (!isTokenEqual(TOKEN_TYPE::keyword, { "if" })) {
 		index--; return false;
 	}
-	prtNTermSym("ifStatement", false);
-	prtTermSym(); index++;
+	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "(" })) return false;
-	prtTermSym();
 
 	if (!compileExpression()) return false;
 	index++;
 
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
-	prtTermSym(); index++;
+	index++;
 
 	auto label1 = "label_" + std::to_string(labelCount + 1);
 	auto label2 = "label_" + std::to_string(labelCount + 2);
@@ -480,44 +415,35 @@ bool CompilationEngine::compileIf() {
 	writer.writeArithmetic(ARITH_CMD::NOT);
 	writer.writeIf(label1);
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "{" })) return false;
-	prtTermSym();
 
 	if (!compileStatements()) return false;
 	index++;
 	writer.writeGoto(label2);
 	writer.writeLabel(label1);
 	if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return false;
-	prtTermSym();
 
 	index++;
 	if (isTokenEqual(TOKEN_TYPE::keyword, { "else" })) {
-		prtTermSym(); index++;
-
+		index++;
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { "{" })) return false;
-		prtTermSym();
 
 		if (!compileStatements()) return false;
 		index++;
 
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { "}" })) return false;
-		prtTermSym();
 	}
 	else
 		index--;
 	writer.writeLabel(label2);
-	prtNTermSym("ifStatement", true);
 	return true;
 }
 
 bool CompilationEngine::compileExpression() {
-	prtNTermSym("expression", false);
-
 	if (!compileTerm()) return false;
 	index++;
 	
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "+", "-", "*", "/", "&", "|", "<", ">", "=" })) {
 		auto arith = curToken()[0];
-		prtTermSym();
 		if (!compileTerm()) return false;
 		index++;
 
@@ -553,21 +479,16 @@ bool CompilationEngine::compileExpression() {
 		}
 	}
 	index--;
-
-	prtNTermSym("expression", true);
 	return true;
 }
 
 bool CompilationEngine::compileTerm() {
-	prtNTermSym("term", false);
 	index++;
 
 	if (curType() == TOKEN_TYPE::int_const) {
-		prtTermSym();
 		writer.writePush(SEGMENT::CONST, atoi(curToken().c_str()));
 	}
 	else if (curType() == TOKEN_TYPE::string_const) {
-		prtTermSym();
 		writer.writePush(SEGMENT::CONST, curToken().size());
 		writer.writeCall("String.new", 1);
 		for (int i = 0; i < curToken().size(); i++) {
@@ -576,7 +497,6 @@ bool CompilationEngine::compileTerm() {
 		}
 	}
 	else if (isTokenEqual(TOKEN_TYPE::keyword, { "true", "false", "null", "this" })) {
-		prtTermSym();
 		if (curToken() == "null" || curToken() == "false")
 			writer.writePush(SEGMENT::CONST, 0);
 		if (curToken() == "true") {
@@ -589,7 +509,6 @@ bool CompilationEngine::compileTerm() {
 	else if (curType() == TOKEN_TYPE::identifier) {
 		auto symIndex = symTabel.IndexOf(curToken());
 		auto symKind = symTabel.KindOf(curToken());
-		prtTermSym();
 		index++;
 		if (isTokenEqual(TOKEN_TYPE::symbol, { "(" , "." })) {
 			index -= 2;
@@ -615,11 +534,9 @@ bool CompilationEngine::compileTerm() {
 				break;
 			}
 
-			prtTermSym();
 			if (!compileExpression()) return false;
 			index++;
 			if (!isTokenEqual(TOKEN_TYPE::symbol, { "]" })) return false;
-			prtTermSym();
 
 			writer.writeArithmetic(ARITH_CMD::ADD);
 			writer.writePop(SEGMENT::POINTER, 1);
@@ -648,16 +565,13 @@ bool CompilationEngine::compileTerm() {
 		}
 	}
 	else if (isTokenEqual(TOKEN_TYPE::symbol, { "(" })) {
-		prtTermSym();
 		if (!compileExpression()) return false;
 		index++;
 
 		if (!isTokenEqual(TOKEN_TYPE::symbol, { ")" })) return false;
-		prtTermSym();
 	}
 	else if (isTokenEqual(TOKEN_TYPE::symbol, { "-", "~" })) {
 		auto arith = curToken();
-		prtTermSym();
 		if (!compileTerm()) return false;
 		if (arith == "-")
 			writer.writeArithmetic(ARITH_CMD::NEG);
@@ -666,13 +580,10 @@ bool CompilationEngine::compileTerm() {
 	}
 	else
 		return false;
-
-	prtNTermSym("term", true);
 	return true;
 }
 
 bool CompilationEngine::compileExpressionList(int& expCount) {
-	prtNTermSym("expressionList", false);
 	index++;
 	if (curType() == TOKEN_TYPE::identifier ||
 		isTokenEqual(TOKEN_TYPE::symbol, { "-", "~", "("}) ||
@@ -685,27 +596,21 @@ bool CompilationEngine::compileExpressionList(int& expCount) {
 	}
 	else {
 		index--;
-		prtNTermSym("expressionList", true);
 		return true;
 	}
 
 	index++;
 
 	while (isTokenEqual(TOKEN_TYPE::symbol, { "," })) {
-		prtTermSym();
 		if (!compileExpression()) return false;
 		index++;
 		expCount++;
 	}
 	index--;
-	prtNTermSym("expressionList", true);
 	return true;
 }
 
-bool CompilationEngine::isType(int index) {
-	if (index == -1)
-		index = this->index;
-
+bool CompilationEngine::isType() {
 	return isTokenEqual(TOKEN_TYPE::keyword, { "int", "char", "boolean" }) || isTokenEqual(TOKEN_TYPE::identifier, {});
 }
 
@@ -726,29 +631,4 @@ TOKEN_TYPE CompilationEngine::curType() {
 
 std::string CompilationEngine::curToken() {
 	return tokens[index].second;
-}
-
-void CompilationEngine::prtTermSym() {
-	for (int i = 0; i < level; i++)
-		ofs << "  ";
-
-	std::string tokenVal = curToken();
-	if (tokenVal == "<") tokenVal = "&lt;";
-	if (tokenVal == ">") tokenVal = "&gt;";
-	if (tokenVal == "&") tokenVal = "&amp;";
-	ofs << "<" + to_string(curType()) + "> " + tokenVal + " </" + to_string(curType()) + ">" << std::endl;
-}
-
-void CompilationEngine::prtNTermSym(const std::string& tagName, bool isEnd) {
-	if (isEnd) level--;
-	for (int i = 0; i < level; i++)
-		ofs << "  ";
-
-	if (isEnd) {
-		ofs << "</" + tagName + ">" << std::endl;
-	}
-	else {
-		ofs << "<" + tagName + ">" << std::endl;
-		level++;
-	}
 }

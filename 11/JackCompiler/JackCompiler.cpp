@@ -13,11 +13,10 @@ int main(int argc, char** argv) {
     std::string jackFilename = std::filesystem::path(jackPath).stem().string();
     std::string directoryPath = std::filesystem::path(jackPath).parent_path().string();
     std::string compilePath = directoryPath + "\\" + jackFilename + ".vm";
-    std::string analPath = directoryPath + "\\" + jackFilename + ".xml";
     std::cout << "output: " << std::endl;
     std::cout << compilePath << std::endl;
     auto tokenizer = JackTokenizer(jackPath);
     auto writer = VMWriter(compilePath);
-    auto engine = CompilationEngine(tokenizer, analPath, writer);
+    auto engine = CompilationEngine(tokenizer, writer);
     engine.compileClass();
 }
